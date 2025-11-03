@@ -1215,12 +1215,16 @@ def unfollow_user(uid):
 # -----------------------------
 # 啟動
 # -----------------------------
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 初始化資料庫（若尚未建立會自動建表）
     init_db()
-    # 確保必要的靜態資料夾存在    
+
+    # 確保必要的資料夾存在
     os.makedirs('static/uploads', exist_ok=True)
     os.makedirs('static/results', exist_ok=True)
     os.makedirs('static/avatars', exist_ok=True)
-    # 啟動 Flask 伺服器（debug 模式）
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+    # 關鍵：Render 會給你一個動態的 PORT，要讀環境變數來監聽
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
