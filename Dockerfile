@@ -20,6 +20,6 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 
 # Render 會自動給你 PORT 環境變數
-# 用 gunicorn 啟動 Flask，並監聽 Render 提供的 $PORT
-CMD gunicorn app:app -w 2 -k gthread -b 0.0.0.0:$PORT --timeout 180
+CMD gunicorn app:app -w 1 -k gthread --threads 1 -b 0.0.0.0:$PORT --timeout 180
+
 
