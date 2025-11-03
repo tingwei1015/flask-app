@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>登入</title>
+  <style>
+    /* ==============================
+			頁面與排版基礎樣式
+       - 設定字體、最大寬度與置中
+       ============================== */
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 560px;     /* 內容寬度限制，避免在桌面過寬 */
+      margin: 40px auto;    /* 置中 + 上下留白 */
+    }
+
+    /* ==============================
+			系統提示（Flash messages）
+       - 用於顯示登入成功/失敗、錯誤訊息等
+       ============================== */
+    .flash {
+      background: #fde68a;  /* 淡黃色背景 */
+      color: #92400e;       /* 深橘文字 */
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    /* ==============================
+			表單欄位群組
+       - 垂直排列並加入間距
+       ============================== */
+    .row {
+      display: flex;
+      flex-direction: column; /* 垂直堆疊 label 與 input */
+      gap: 6px;
+      margin: 10px 0;
+    }
+
+    /* ==============================
+			輸入框樣式
+       - 邊框、圓角與內距
+       ============================== */
+    input {
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 100%;
+    }
+
+    /* ==============================
+		 送出按鈕樣式
+       - 藍底白字、圓角
+       ============================== */
+    button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* ==============================
+			連結樣式
+       ============================== */
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h2>登入</h2>
+
+  <!-- ==============================
+       Flask 的 flash 訊息顯示
+       - 後端透過 flash() 推送訊息（如：帳密錯誤、登入成功）
+       - 這裡逐一渲染並套用 .flash 樣式
+       ============================== -->
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="flash">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- ==============================
+       登入表單
+       - method="post" 送至 /login
+       - 兩個欄位：Email、密碼
+       - 送出後由後端驗證帳密並設定 session
+       ============================== -->
+  <form method="post" action="{{ url_for('login') }}">
+    <div class="row">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required />
+    </div>
+    <div class="row">
+      <label for="password">密碼</label>
+      <input id="password" name="password" type="password" required minlength="6" />
+    </div>
+    <button type="submit">登入</button>
+  </form>
+<p style="margin-top:10px;">
+  <a href="{{ url_for('forgot') }}">忘記密碼？</a>
+</p>
+
+  <p>還沒有帳號？<a href="{{ url_for('register') }}">去註冊</a></p>
+</body>
+</html>

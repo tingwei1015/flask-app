@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>鉤織圖辨識系統</title>
+  <style>
+    /* ==============================
+				版面與文字設定
+       - 設定字體、頁面留白、背景色與文字大小
+       ============================== */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f9f9f9;
+      color: #333;
+      font-size: 18px;
+    }
+    /* ==============================
+       🏷 主標題樣式
+       - 置中、調色與字級
+       ============================== */
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #444;
+      font-size: 30px;
+    }
+    /* ==============================
+       - 虛線框 + 白底 + 圓角
+       - 置中對齊
+       ============================== */
+    .upload-box {
+      text-align: center;
+      margin-bottom: 10px;
+      padding: 20px;
+      border: 2px dashed #aaa;
+      border-radius: 10px;
+      background: #fff;
+    }
+    /* 上傳 input 與按鈕的間距 */
+    .upload-box input[type="file"] {
+      margin: 10px 0;
+    }
+    /* 主要按鈕（上傳並辨識） */
+    .upload-box button {
+      margin-top: 1px;
+      padding: 12px 20px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 6px;
+      background-color: #967AA1;
+      color: white;
+      cursor: pointer;
+    }
+    .upload-box button:hover {
+      background-color: #AAA1C8;
+    }
+
+    /* ==============================
+				相機
+       ============================== */
+/* 讓相機按鈕與上傳並辨識外觀一致（同色系、同大小） */
+	.upload-box .camera-btn {
+	display: inline-block;
+	margin-left: 10px;
+	vertical-align: middle;
+	padding: 12px 20px;
+	font-size: 1.1em;
+	border: none;
+	border-radius: 6px;
+	background-color: #967AA1; /* 與上傳並辨識一致 */
+	color: white;
+	cursor: pointer;
+}
+	.upload-box .camera-btn:hover { background-color: #AAA1C8; }
+
+	.btn-row {
+	display: flex;
+	justify-content: center;   /* 改為置中，而非兩邊分散 */
+	align-items: center;
+	gap: 20px;                 /* 控制兩顆按鈕的距離，與下方一致 */
+	margin-top: 10px;
+}
+
+
+
+    /* ==============================
+       ✅ 勾選選項（原圖/圈圖）
+       ============================== */
+    .checkbox-area {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+    .checkbox-area label {
+      margin: 0 15px;
+    }
+    /* 進度條樣式 */
+    .progress-container {
+      width: 80%;
+      margin: 20px auto;
+      height: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      background: #eee;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #D5C6E0;
+      border-radius: 10px;
+      transition: width 0.2s;
+    }
+    .progress-text {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* 顯示使用者與登出 */
+    .top-right {
+      text-align: right;
+      margin-bottom: 12px;
+    }
+    .top-right a { color:#967AA1; margin-left:12px; text-decoration:none; }
+
+    /* 功能按鈕（使用說明 / 關於本系統） */
+    .action-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .guide-btn, .about-btn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: 2px solid #6b7280;
+      border-radius: 8px;
+      background: #fff;
+      color: #444;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+    .guide-btn:hover, .about-btn:hover { background:#f3f4f6; }
+
+    /* 通用彈窗樣式 */
+    .modal-mask {
+      display:none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.5);
+      z-index:9999;
+      justify-content:center;
+      align-items:center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-card {
+      background:white;
+      border-radius:12px;
+      padding:25px;
+      width:85%;
+      max-width:650px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.3);
+      text-align:left;
+    }
+    .modal-card h2 {
+      text-align:center; color:#444; margin-top:0;
+    }
+    .modal-card p { line-height:1.8; color:#333; }
+    .modal-actions { text-align:center; margin-top:20px; }
+    .modal-close {
+      padding:8px 18px;
+      background:#967AA1;
+      color:white;
+      border:none;
+      border-radius:8px;
+      font-size:16px;
+      cursor:pointer;
+    }
+
+    /* ==============================
+       📸 相機 Modal 內部元件（視訊/畫布/按鈕）
+       - video：即時預覽
+       - canvas：拍照後的靜態預覽
+       ============================== */
+    .camera-wrap { text-align:center; }
+    #cameraVideo, #cameraCanvas {
+      width: 100%;
+      max-width: 560px;
+      border-radius: 8px;
+      background: #000; /* 未啟動時黑底 */
+    }
+    .camera-controls {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .camera-controls button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      background: #6b7280;
+      color: #fff;
+    }
+    .camera-controls button.secondary { background: #9ca3af; }
+    .camera-controls button.danger { background: #ef4444; }
+    .camera-controls button.primary { background: #967AA1; }
+		/* 頂部橫列：左邊三顆 + 右邊使用者區 */
+	.topbar{
+	  display:flex;
+	  justify-content:space-between;
+	  align-items:center;
+	  gap:12px;
+	  width:100%;
+	  /* 桌機保持同一行 */
+	  flex-wrap:nowrap;
+	  margin-bottom:12px;
+	}
+
+	/* 左側三顆橫向排列 */
+	.top-left{
+	  display:flex;
+	  align-items:center;
+	  gap:10px;
+	  flex-wrap:nowrap;
+	}
+
+	/* 右側區保留你的樣式；如果你原本有 .top-right 的設定可共存 */
+	.top-right a{ color:#967AA1; margin-left:12px; text-decoration:none; }
+
+	/* 把「查看我的結果」抽成 class，維持你原本的外觀 */
+	.pill-link{
+	  text-decoration:none;
+	  color:#333;
+	  background:#e0e0e0;
+	  padding:8px 14px;
+	  border-radius:6px;
+	  display:inline-block;
+	}
+
+	/* 手機時再允許換行，避免擠壓重疊 */
+	@media (max-width: 640px){
+	  .topbar{ flex-wrap:wrap; }
+	  .top-right{ width:100%; text-align:right; }
+	}
+
+
+  </style>
+</head>
+<body>
+	<div class="topbar">
+	  <div class="top-left">
+		<a href="{{ url_for('history_page') }}" class="pill-link">📜 查看我的結果</a>
+		<button id="guideBtn" class="guide-btn" type="button">📘 使用說明</button>
+		<button id="aboutBtn" class="about-btn" type="button">ℹ️ 關於本系統</button>
+	  </div>
+	  <div class="top-right">
+		<span>使用者：{{ username }}</span>
+		<a href="{{ url_for('feed') }}">貼文牆</a>
+		<a href="{{ url_for('my_likes') }}">我按過的讚</a>
+		<a href="{{ url_for('profile') }}">個人介面</a>
+		<a href="{{ url_for('logout') }}">登出</a>
+	  </div>
+	</div>
+  <h1>鉤織圖辨識系統</h1>
+
+  <div class="upload-box">
+    <form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data">
+      <p style="font-size:20px;">請上傳一張鉤織圖：</p>
+      <input type="file" id="fileInput" name="file" accept="image/*" required>
+      <!-- 🔒 隱藏的系統相機 fallback input
+           - 當 WebRTC 失敗時會以 JS 觸發它
+           - capture="environment" 盡可能啟用後鏡頭（Android 相容性較佳） -->
+      <input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none;">
+	  <br>
+	  <div class="btn-row">
+		<button type="submit">上傳並辨識</button>
+		<!-- ✅ 相機按鈕放在這裡，並指定為 button，避免 Android 當成 submit -->
+		<button id="cameraBtn" class="camera-btn" type="button">直接拍照上傳</button>
+	  </div>
+
+      <div class="checkbox-area">
+        <label><input type="checkbox" name="output_original"> 輸出原圖</label>
+        <label><input type="checkbox" name="output_circle"> 輸出圈圖結果</label>
+        <!-- <label><input type="checkbox" name="save_history"> 儲存歷史紀錄</label> -->
+      </div>
+	</form>
+  </div>
+
+  <!-- 進度條 -->
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="progress-text" id="progressText">系統正在努力工作中，請稍候：)</div>
+
+  <!-- 使用說明彈窗 -->
+  <div id="guideModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>📘 鉤織圖辨識系統使用說明</h2>
+      <ol style="line-height:1.8; font-size:17px; color:#333; padding-left: 1.1em;">
+        <li>請點擊「選擇檔案」上傳一張鉤織圖（支援 JPG、PNG）。建議圖像清晰、背景單純。</li>
+        <li>可勾選「輸出原圖」或「輸出圈圖結果」，選擇要顯示的結果。</li>
+        <li>上傳後系統會自動分析圖案，辨識出各針法種類與數量。</li>
+        <li>辨識完成後，您可將結果儲存到「我的結果」，以便日後回顧或再分析。</li>
+        <li>在「歷史紀錄」頁面中，可查看、重新命名或刪除先前的紀錄。</li>
+        <li>若要登出，請點右上角「登出」按鈕。</li>
+      </ol>
+      <p style="margin-top:10px; color:#555; font-size:16px; line-height:1.6;">
+        💡 提示：若圖案包含特殊手繪符號或影像模糊，辨識準確率可能略有降低。拍攝時請保持光線充足並避免陰影干擾。
+      </p>
+      <div class="modal-actions">
+        <button id="closeGuide" class="modal-close">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 關於本系統彈窗 -->
+  <div id="aboutModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>ℹ️ 關於本系統</h2>
+      <p>
+        「鉤織圖辨識系統」是一款專為鉤織愛好者、設計師與學習者打造的智慧輔助工具。
+        透過整合人工智慧（AI）影像辨識技術與 YOLO 模型，本系統能自動解析鉤織圖樣中的各種針法符號，
+        並快速計算出各針法的數量，協助您節省手動分析的時間。
+      </p>
+      <p>
+        無論您是要記錄自己的作品、學習不同針法的使用，或是協助整理大量鉤織教材，
+        本系統都能成為您可靠的夥伴。系統亦提供「歷史紀錄」功能，讓使用者能隨時回顧過去的辨識結果。
+      </p>
+      <p>
+        目前支援的針法類型包括：鎖針、短針、中長針、長針、引拔針、爆米花針、棗形針、狗牙針等多種符號，
+        並持續擴充中。您只需上傳一張清晰的鉤織圖，即可獲得辨識結果與視覺化圖像加文字敘述。
+      </p>
+      <div class="modal-actions">
+        <button id="closeAbout" class="modal-close">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================
+       相機彈窗（Modal）
+       - 入口按鈕位於上傳表單旁
+       - 內含 WebRTC 視訊預覽與拍照/上傳控制
+       ========================== -->
+  <div id="cameraModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>📷 直接拍照上傳</h2>
+      <div class="camera-wrap">
+	    <!-- 視訊預覽（WebRTC）：playsinline 防 iOS 自動全螢幕、muted 提高自動播放成功率 -->
+        <video id="cameraVideo" autoplay playsinline muted></video>
+		<!-- 畫布：拍照後將 video 畫面繪製到此，呈現靜態預覽 -->
+        <canvas id="cameraCanvas" style="display:none;"></canvas>
+		<!-- 相機操作按鈕列 -->
+        <div class="camera-controls">
+          <button id="startCamBtn" class="secondary">開啟相機</button>
+          <button id="captureBtn" class="primary">拍照</button>
+          <button id="retakeBtn" class="secondary" style="display:none;">重拍</button>
+          <button id="uploadShotBtn" class="primary" style="display:none;">上傳辨識</button>
+          <button id="closeCamera" class="danger">關閉</button>
+        </div>
+      </div>
+      <p style="margin-top:10px; color:#555; font-size:15px; line-height:1.6;">
+        若無法開啟後鏡頭，請允許瀏覽器相機權限或改用系統相機拍照後再由檔案上傳。
+      </p>
+    </div>
+  </div>
+
+  <style>
+  /* ✅ 修改 checkbox 顏色 */
+  .checkbox-area input[type="checkbox"] {
+    accent-color: #ff6600;
+    transform: scale(1.3);
+    margin-right: 6px;
+  }
+  .checkbox-area label {
+    font-size: 16px;
+    margin-right: 15px;
+    cursor: pointer;
+  }
+  .checkbox-area {
+    margin-top: 10px;
+  }
+  </style>
+
+  <script>
+    // 上傳進度條控制（保留原邏輯）
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault(); // 防止表單直接送出
+      const form = e.target;
+      const fileInput = document.getElementById("fileInput");
+
+      if (!fileInput.files.length) {
+        alert("請選擇圖片！");
+        return;
+      }
+
+      const formData = new FormData(form);
+
+      // 顯示進度條
+      const progressContainer = document.getElementById("progressContainer");
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressText");
+      progressContainer.style.display = "block";
+      progressText.style.display = "block";
+      progressBar.style.width = "0%";
+
+      // 模擬進度條
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 10; // 模擬進度
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + "%";
+      }, 200);
+
+      // 送出表單資料到後端 /predict
+      fetch(form.action, {
+        method: form.method,
+        body: formData
+      }).then(response => response.text()).then(html => {
+        clearInterval(interval);
+        progressBar.style.width = "100%";
+
+        setTimeout(() => {
+          document.open();
+          document.write(html);
+          document.close();
+        }, 300); // 延遲讓用戶看到100%
+      }).catch(err => {
+        alert("上傳失敗：" + err);
+      });
+    });
+
+    // 使用說明彈窗
+    const guideBtn = document.getElementById("guideBtn");
+    const guideModal = document.getElementById("guideModal");
+    const closeGuide = document.getElementById("closeGuide");
+    guideBtn.onclick = () => guideModal.style.display = "flex";
+    closeGuide.onclick = () => guideModal.style.display = "none";
+    guideModal.onclick = (e) => { if (e.target === guideModal) guideModal.style.display = "none"; };
+
+    // 關於本系統彈窗
+    const aboutBtn = document.getElementById("aboutBtn");
+    const aboutModal = document.getElementById("aboutModal");
+    const closeAbout = document.getElementById("closeAbout");
+    aboutBtn.onclick = () => aboutModal.style.display = "flex";
+    closeAbout.onclick = () => aboutModal.style.display = "none";
+    aboutModal.onclick = (e) => { if (e.target === aboutModal) aboutModal.style.display = "none"; };
+
+    // ✅ 相機拍照上傳（入口按鈕）
+    const cameraBtn = document.getElementById("cameraBtn");
+    const cameraModal = document.getElementById("cameraModal");
+    const videoEl = document.getElementById("cameraVideo");
+    const canvasEl = document.getElementById("cameraCanvas");
+    const startCamBtn = document.getElementById("startCamBtn");
+    const captureBtn = document.getElementById("captureBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
+    const uploadShotBtn = document.getElementById("uploadShotBtn");
+    const closeCamera = document.getElementById("closeCamera");
+    const captureInput = document.getElementById("captureInput");
+
+    let mediaStream = null;
+    let capturedBlob = null;
+
+    function stopStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+    }
+
+    // 共用上傳流程（提供給 WebRTC 與 capture input 使用）
+    async function uploadWithProgress(formData) {
+      const progressContainer = document.getElementById("progressContainer");
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressText");
+      progressContainer.style.display = "block";
+      progressText.style.display = "block";
+      progressBar.style.width = "0%";
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + "%";
+      }, 200);
+
+      const res = await fetch("/predict", { method: "POST", body: formData });
+      const html = await res.text();
+      clearInterval(interval);
+      progressBar.style.width = "100%";
+      setTimeout(() => {
+        document.open();
+        document.write(html);
+        document.close();
+      }, 300);
+    }
+
+    // 嘗試啟動後鏡頭（WebRTC）
+    // - exact → ideal → default 的三段策略
+    // - enumerateDevices 嘗試更精準切換到「back/rear/environment」鏡頭
+    // - loadedmetadata 後再 play() 可避免黑屏（iOS/Android 常見問題）
+    async function tryStartBackCamera() {
+      const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!isSecure || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return false; // 非安全環境或瀏覽器不支援
+      }
+      try {
+        // 1) 嚴格要求後鏡頭
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } }, audio: false });
+        } catch {
+          // 2) 理想使用後鏡頭
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+          } catch {
+            // 3) 任意可用鏡頭
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
+        }
+
+        // 嘗試 enumerate 裝置，找名稱包含 back/rear/environment 的鏡頭並切換
+        if (navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const back = devices.find(d => d.kind === "videoinput" && /back|rear|environment/i.test(d.label));
+          if (back) {
+            try {
+              stopStream();
+              mediaStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: back.deviceId } }, audio: false });
+            } catch {}
+          }
+        }
+
+        // 綁定到 <video>，並確保 loadedmetadata 之後再 play()
+        videoEl.srcObject = mediaStream;
+
+        try {
+          if (videoEl.readyState < 2) {
+            await new Promise((resolve) => {
+              const handler = () => { videoEl.removeEventListener('loadedmetadata', handler); resolve(); };
+              videoEl.addEventListener('loadedmetadata', handler, { once: true });
+            });
+          }
+          await videoEl.play();
+        } catch (err) {
+          // 有些瀏覽器需延後一個 event loop 再呼叫 play()
+          setTimeout(() => { videoEl.play().catch(()=>{}); }, 0);
+        }
+
+        // 顯示預覽、隱藏靜態圖、重置按鈕狀態
+        videoEl.style.display = "block";
+        canvasEl.style.display = "none";
+        retakeBtn.style.display = "none";
+        uploadShotBtn.style.display = "none";
+        capturedBlob = null;
+        return true;
+      } catch {
+        return false; // WebRTC 流程失敗（權限或裝置限制）
+      }
+    }
+
+    // 啟動相機：優先 WebRTC，失敗則改用「系統相機」檔案 input
+    async function startCamera() {
+      const ok = await tryStartBackCamera();
+      if (!ok) {
+        // Android/Samsung：部分瀏覽器禁止對 display:none 的 input 直接 click()
+        // → 短暫把 input 擺到畫面外，點擊後再隱藏
+        captureInput.style.position = 'fixed';
+        captureInput.style.left = '-9999px';
+        captureInput.style.opacity = '0';
+        captureInput.style.display = 'block';
+        try {
+          captureInput.click();
+        } finally {
+          setTimeout(() => { captureInput.style.display = 'none'; }, 0);
+        }
+      }
+    }
+
+    // 入口：點相機按鈕 → 打開 Modal → 嘗試啟動相機（或 fallback）
+    cameraBtn && (cameraBtn.onclick = () => {
+      cameraModal.style.display = "flex";
+      startCamera();
+    });
+
+    // Modal 內的「開啟相機」：可重試
+    startCamBtn.onclick = () => startCamera();
+
+    // 拍照：將 video 畫面畫到 canvas，並轉 blob 作為靜態預覽
+    captureBtn.onclick = () => {
+      if (!mediaStream) return;
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+      const w = settings.width || videoEl.videoWidth || 1280;
+      const h = settings.height || videoEl.videoHeight || 720;
+
+      canvasEl.width = w;
+      canvasEl.height = h;
+      const ctx = canvasEl.getContext("2d");
+      ctx.drawImage(videoEl, 0, 0, w, h);
+
+      canvasEl.toBlob((blob) => {
+        capturedBlob = blob;
+        // 切換至靜態預覽；為省電將相機停止
+        videoEl.style.display = "none";
+        canvasEl.style.display = "block";
+        retakeBtn.style.display = "inline-block";
+        uploadShotBtn.style.display = "inline-block";
+        stopStream();
+      }, "image/jpeg", 0.92);
+    };
+
+    // 重拍：重新啟動相機（回到視訊預覽階段）
+    retakeBtn.onclick = () => {
+      startCamera();
+    };
+
+    // 上傳拍照結果：打包成 FormData 一起送到 /predict
+    uploadShotBtn.onclick = async () => {
+      if (!capturedBlob) {
+        alert("請先拍照再上傳。");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", new File([capturedBlob], "camera.jpg", { type: "image/jpeg" }));
+
+      // 同步目前勾選的輸出選項（原圖/圈圖）
+      const outputOriginal = document.querySelector('input[name="output_original"]');
+      const outputCircle = document.querySelector('input[name="output_circle"]');
+      if (outputOriginal && outputOriginal.checked) formData.append("output_original", "on");
+      if (outputCircle && outputCircle.checked) formData.append("output_circle", "on");
+
+      try {
+        await uploadWithProgress(formData);
+      } finally {
+        cameraModal.style.display = "none";
+      }
+    };
+
+    // 關閉相機彈窗：釋放串流並關閉 Modal
+    function closeCameraModal() {
+      stopStream();
+      cameraModal.style.display = "none";
+    }
+
+    // 關閉事件：按下關閉按鈕或點擊遮罩區域
+    const cameraModalEl = document.getElementById("cameraModal");
+    const closeCameraBtn = document.getElementById("closeCamera");
+    closeCameraBtn.onclick = () => closeCameraModal();
+    cameraModalEl.onclick = (e) => { if (e.target === cameraModalEl) closeCameraModal(); };
+
+    // 📸 系統相機 fallback：使用 capture input
+    // - 使用者拍完照選取後觸發 change，直接上傳
+    captureInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // 同步勾選的輸出選項（原圖/圈圖）
+      const outputOriginal = document.querySelector('input[name="output_original"]');
+      const outputCircle = document.querySelector('input[name="output_circle"]');
+      if (outputOriginal && outputOriginal.checked) formData.append("output_original", "on");
+      if (outputCircle && outputCircle.checked) formData.append("output_circle", "on");
+
+      try {
+        await uploadWithProgress(formData);
+      } finally {
+        captureInput.value = "";            // 清空以便下次可再次觸發 change
+        cameraModal.style.display = "none"; // 關閉 Modal
+        stopStream();                       // 保險：釋放可能殘留的串流
+      }
+    });
+  </script>
+
+</body>
+</html>
